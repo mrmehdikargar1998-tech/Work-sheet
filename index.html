@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ثبت ورود و خروج</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f2f4f7;
+      color: #222;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #clock {
+      font-size: 35px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+
+    button {
+      width: 100%;
+      padding: 16px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .enter {
+      background: #16a34a;
+      color: white;
+    }
+
+    .exit {
+      background: #dc2626;
+      color: white;
+    }
+
+    .clear {
+      background: #555;
+      color: white;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 25px;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px 5px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background: #f1f1f1;
+    }
+
+    .status {
+      margin-top: 15px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="card">
+
+    <h1>🕐 ثبت ورود و خروج</h1>
+
+    <div id="date"></div>
+    <div id="clock"></div>
+
+    <button class="enter" onclick="registerEntry()">
+      🟢 ثبت ورود
+    </button>
+
+    <button class="exit" onclick="registerExit()">
+      🔴 ثبت خروج
+    </button>
+
+    <div class="status" id="status"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>تاریخ</th>
+          <th>ورود</th>
+          <th>خروج</th>
+        </tr>
+      </thead>
+
+      <tbody id="records"></tbody>
+    </table>
+
+    <button class="clear" onclick="clearRecords()">
+      🗑 پاک کردن سوابق
+    </button>
+
+  </div>
+</div>
+
+<script>
+
+let records = JSON.parse(localStorage.getItem("attendance")) || [];
+
+function updateClock() {
+
+  const now = new Date();
+
+  document.getElementById("clock").innerText =
+    now.toLocaleTimeString("fa-IR");
+
+  document.getElementById("date").innerText =
+    now.toLocaleDateString("fa-IR");
+}
+
+setInterval(updateClock, 1000);
+updateClock();
+
+
+function registerEntry() {
+
+  const now = new Date();
+
+  const date = now.toLocaleDateString("fa-IR");
+  const time = now.toLocaleTimeString("fa-IR");
+
+  let today = records.find(r => r.date === date);
+
+  if (!today) {
+
+    today = {
+      date: date,
+      entry: time,
+      exit: ""
+    };
+
+    records.push(today);
+
+  } else {
+
+    today.entry = time;
+
+  }
+
+  saveRecords();
+
+  document.getElementById("status").innerText =
+    "✅ ساعت ورود ثبت شد: " + time;
+}
+
+
+function registerExit() {
+
+  const now = new Date();
+
+  const date = now.toLocaleDateString("fa-IR");
+  const time = now.toLocaleTimeString("fa-IR");
+
+  let today = records.find(r => r.date === date);
+
+  if (!today) {
+
+    today = {
+      date: date,
+      entry: "",
+      exit: time
+    };
+
+    records.push(today);
+
+  } else {
+
+    today.exit = time;
+
+  }
+
+  saveRecords();
+
+  document.getElementById("status").innerText =
+    "✅ ساعت خروج ثبت شد: " + time;
+}
+
+
+function saveRecords() {
+
+  localStorage.setItem(
+    "attendance",
+    JSON.stringify(records)
+  );
+
+  displayRecords();
+}
+
+
+function displayRecords() {
+
+  const table = document.getElementById("records");
+
+  table.innerHTML = "";
+
+  records.slice().reverse().forEach(record => {
+
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>${record.date}</td>
+      <td>${record.entry || "-"}</td>
+      <td>${record.exit || "-"}</td>
+    `;
+
+    table.appendChild(row);
+
+  });
+}
+
+
+function clearRecords() {
+
+  if (confirm("آیا مطمئنی می‌خواهی همه سوابق پاک شوند؟")) {
+
+    records = [];
+
+    localStorage.removeItem("attendance");
+
+    displayRecords();
+
+    document.getElementById("status").innerText =
+      "سوابق پاک شدند.";
+  }
+}
+
+displayRecords();
+
+</script>
+
+</body>
+</html>
