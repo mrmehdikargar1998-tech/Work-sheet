@@ -19,45 +19,50 @@
 
     .container {
       max-width: 500px;
-      margin: 40px auto;
-      padding: 20px;
+      margin: 25px auto;
+      padding: 15px;
     }
 
     .card {
       background: white;
-      padding: 25px;
+      padding: 22px;
       border-radius: 20px;
       box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-      text-align: center;
     }
 
     h1 {
-      margin-bottom: 10px;
+      text-align: center;
+      margin-top: 0;
     }
 
-    #clock {
-      font-size: 35px;
+    label {
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 6px;
       font-weight: bold;
-      margin: 20px 0;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 17px;
+      background: white;
     }
 
     button {
       width: 100%;
-      padding: 16px;
-      margin: 8px 0;
+      padding: 15px;
+      margin-top: 12px;
       border: none;
       border-radius: 12px;
-      font-size: 18px;
+      font-size: 17px;
       cursor: pointer;
     }
 
-    .enter {
-      background: #16a34a;
-      color: white;
-    }
-
-    .exit {
-      background: #dc2626;
+    .save {
+      background: #2563eb;
       color: white;
     }
 
@@ -66,25 +71,39 @@
       color: white;
     }
 
+    .status {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: bold;
+      min-height: 25px;
+    }
+
+    .table-box {
+      overflow-x: auto;
+      margin-top: 25px;
+    }
+
     table {
       width: 100%;
-      margin-top: 25px;
       border-collapse: collapse;
+      min-width: 350px;
     }
 
     th, td {
       padding: 10px 5px;
       border-bottom: 1px solid #ddd;
+      text-align: center;
     }
 
     th {
       background: #f1f1f1;
     }
 
-    .status {
+    .today {
       margin-top: 15px;
-      font-size: 16px;
-      font-weight: bold;
+      text-align: center;
+      font-size: 14px;
+      color: #555;
     }
   </style>
 </head>
@@ -92,176 +111,78 @@
 <body>
 
 <div class="container">
+
   <div class="card">
 
     <h1>🕐 ثبت ورود و خروج</h1>
 
-    <div id="date"></div>
-    <div id="clock"></div>
+    <div class="today" id="todayText"></div>
 
-    <button class="enter" onclick="registerEntry()">
-      🟢 ثبت ورود
-    </button>
+    <label for="dateInput">📅 تاریخ</label>
+    <input type="text" id="dateInput" placeholder="مثلاً 1405/07/12">
 
-    <button class="exit" onclick="registerExit()">
-      🔴 ثبت خروج
+    <label for="entryInput">🟢 ساعت ورود</label>
+    <input type="time" id="entryInput">
+
+    <label for="exitInput">🔴 ساعت خروج</label>
+    <input type="time" id="exitInput">
+
+    <button class="save" onclick="saveRecord()">
+      💾 ثبت اطلاعات
     </button>
 
     <div class="status" id="status"></div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>تاریخ</th>
-          <th>ورود</th>
-          <th>خروج</th>
-        </tr>
-      </thead>
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>تاریخ</th>
+            <th>ورود</th>
+            <th>خروج</th>
+          </tr>
+        </thead>
 
-      <tbody id="records"></tbody>
-    </table>
+        <tbody id="records"></tbody>
+      </table>
+    </div>
 
     <button class="clear" onclick="clearRecords()">
-      🗑 پاک کردن سوابق
+      🗑 پاک کردن همه سوابق
     </button>
 
   </div>
+
 </div>
 
 <script>
 
-let records = JSON.parse(localStorage.getItem("attendance")) || [];
+/* =========================
+   تبدیل تاریخ میلادی به شمسی
+========================= */
 
-function updateClock() {
+function gregorianToJalali(gy, gm, gd) {
 
-  const now = new Date();
+  const g_d_m = [
+    0, 31, 59, 90, 120, 151,
+    181, 212, 243, 273, 304, 334
+  ];
 
-  document.getElementById("clock").innerText =
-    now.toLocaleTimeString("fa-IR");
+  let jy;
 
-  document.getElementById("date").innerText =
-    now.toLocaleDateString("fa-IR");
-}
-
-setInterval(updateClock, 1000);
-updateClock();
-
-
-function registerEntry() {
-
-  const now = new Date();
-
-  const date = now.toLocaleDateString("fa-IR");
-  const time = now.toLocaleTimeString("fa-IR");
-
-  let today = records.find(r => r.date === date);
-
-  if (!today) {
-
-    today = {
-      date: date,
-      entry: time,
-      exit: ""
-    };
-
-    records.push(today);
-
+  if (gy > 1600) {
+    jy = 979;
+    gy -= 1600;
   } else {
-
-    today.entry = time;
-
+    jy = 0;
+    gy -= 621;
   }
 
-  saveRecords();
+  let gy2 = (gm > 2) ? (gy + 1) : gy;
 
-  document.getElementById("status").innerText =
-    "✅ ساعت ورود ثبت شد: " + time;
-}
-
-
-function registerExit() {
-
-  const now = new Date();
-
-  const date = now.toLocaleDateString("fa-IR");
-  const time = now.toLocaleTimeString("fa-IR");
-
-  let today = records.find(r => r.date === date);
-
-  if (!today) {
-
-    today = {
-      date: date,
-      entry: "",
-      exit: time
-    };
-
-    records.push(today);
-
-  } else {
-
-    today.exit = time;
-
-  }
-
-  saveRecords();
-
-  document.getElementById("status").innerText =
-    "✅ ساعت خروج ثبت شد: " + time;
-}
-
-
-function saveRecords() {
-
-  localStorage.setItem(
-    "attendance",
-    JSON.stringify(records)
-  );
-
-  displayRecords();
-}
-
-
-function displayRecords() {
-
-  const table = document.getElementById("records");
-
-  table.innerHTML = "";
-
-  records.slice().reverse().forEach(record => {
-
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-      <td>${record.date}</td>
-      <td>${record.entry || "-"}</td>
-      <td>${record.exit || "-"}</td>
-    `;
-
-    table.appendChild(row);
-
-  });
-}
-
-
-function clearRecords() {
-
-  if (confirm("آیا مطمئنی می‌خواهی همه سوابق پاک شوند؟")) {
-
-    records = [];
-
-    localStorage.removeItem("attendance");
-
-    displayRecords();
-
-    document.getElementById("status").innerText =
-      "سوابق پاک شدند.";
-  }
-}
-
-displayRecords();
-
-</script>
-
-</body>
-</html>
+  let days =
+    (365 * gy) +
+    Math.floor((gy2 + 3) / 4) -
+    Math.floor((gy2 + 99) / 100) +
+    Math.floor((gy2 + 399) / 400) -
+    80
